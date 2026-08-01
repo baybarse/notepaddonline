@@ -44,7 +44,7 @@ export default function TipTapEditor({ note, onContentChange }) {
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({
-        placeholder: 'Yazmaya başlayın...',
+        placeholder: 'Start writing...',
       }),
       TaskList,
       TaskItem.configure({ nested: true }),

@@ -21,20 +21,20 @@ export default function ImageUpload({ onInsert, onClose }) {
 
     // Check photo limit
     if (photoCount >= MAX_PHOTOS) {
-      setError(`Fotoğraf limitine ulaştınız (${MAX_PHOTOS}/${MAX_PHOTOS}). Daha fazla yükleyemezsiniz.`)
+      setError(`You've reached the photo limit (${MAX_PHOTOS}/${MAX_PHOTOS}). Cannot upload more.`)
       return
     }
 
     // Check file size
     if (file.size > MAX_SIZE) {
-      setError('Dosya boyutu 4MB\'ı aşamaz.')
+      setError('File size cannot exceed 4MB.')
       return
     }
 
     // Check file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
     if (!validTypes.includes(file.type)) {
-      setError('Desteklenen formatlar: JPEG, PNG, GIF, WebP, SVG')
+      setError('Supported formats: JPEG, PNG, GIF, WebP, SVG')
       return
     }
 
@@ -75,7 +75,7 @@ export default function ImageUpload({ onInsert, onClose }) {
       onInsert(publicUrl)
     } catch (err) {
       console.error('Upload error:', err)
-      setError('Yükleme sırasında bir hata oluştu: ' + (err.message || ''))
+      setError('An error occurred while uploading: ' + (err.message || ''))
     }
 
     setUploading(false)
@@ -112,7 +112,7 @@ export default function ImageUpload({ onInsert, onClose }) {
       <div className="image-upload-dialog" onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <ImageIcon size={20} /> Resim Ekle
+            <ImageIcon size={20} /> Insert Image
           </h3>
           <button className="header-btn" onClick={onClose}><X size={16} /></button>
         </div>
@@ -126,7 +126,7 @@ export default function ImageUpload({ onInsert, onClose }) {
           color: photoCount >= 8 ? 'var(--warning)' : 'var(--text-muted)'
         }}>
           <ImageIcon size={14} />
-          Kullanılan: {photoCount}/{MAX_PHOTOS} fotoğraf (max 4MB)
+          Used: {photoCount}/{MAX_PHOTOS} photos (max 4MB each)
         </div>
 
         {/* Dropzone */}
@@ -139,9 +139,9 @@ export default function ImageUpload({ onInsert, onClose }) {
         >
           <Upload size={32} />
           <p>
-            <span className="accent">Dosya seçin</span> veya sürükleyin
+            <span className="accent">Choose a file</span> or drag & drop
           </p>
-          <p style={{ fontSize: 'var(--text-xs)' }}>Veya Ctrl+V ile yapıştırın</p>
+          <p style={{ fontSize: 'var(--text-xs)' }}>Or paste with Ctrl+V</p>
         </div>
 
         <input
@@ -159,7 +159,7 @@ export default function ImageUpload({ onInsert, onClose }) {
               <div className="image-upload-progress-fill" style={{ width: `${progress}%` }} />
             </div>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-              Yükleniyor... {progress}%
+              Uploading... {progress}%
             </p>
           </div>
         )}
@@ -167,7 +167,7 @@ export default function ImageUpload({ onInsert, onClose }) {
         {/* URL Input */}
         <div style={{ marginTop: 'var(--space-3)' }}>
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Link2 size={12} /> Veya URL ile ekle:
+            <Link2 size={12} /> Or insert via URL:
           </p>
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <input
@@ -180,7 +180,7 @@ export default function ImageUpload({ onInsert, onClose }) {
               style={{ margin: 0, flex: 1 }}
             />
             <button className="btn btn-primary" onClick={handleUrlInsert} disabled={!urlInput.trim()}>
-              Ekle
+              Insert
             </button>
           </div>
         </div>

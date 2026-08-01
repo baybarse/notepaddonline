@@ -54,7 +54,7 @@ export default function MarkdownEditorView({ note, onContentChange }) {
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder="Markdown formatında yazın...&#10;&#10;# Başlık&#10;**kalın** _italik_ ~~üstü çizili~~&#10;- madde listesi&#10;1. numaralı liste&#10;> alıntı&#10;```kod bloğu```"
+        placeholder="Write in Markdown format...&#10;&#10;# Heading&#10;**bold** _italic_ ~~strikethrough~~&#10;- bullet list&#10;1. numbered list&#10;> blockquote&#10;```code block```"
         spellCheck={false}
       />
     </div>
