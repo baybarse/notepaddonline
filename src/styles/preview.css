@@ -1,0 +1,117 @@
+/* ============================================
+   PadSync — Preview Panel Styles
+   ============================================ */
+
+.preview-content {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.preview-content h1 { font-size: var(--text-3xl); font-weight: 700; margin: 1.5em 0 0.5em; letter-spacing: -0.02em; }
+.preview-content h2 { font-size: var(--text-2xl); font-weight: 600; margin: 1.25em 0 0.5em; }
+.preview-content h3 { font-size: var(--text-xl); font-weight: 600; margin: 1em 0 0.4em; }
+.preview-content h4 { font-size: var(--text-lg); font-weight: 600; margin: 1em 0 0.4em; }
+.preview-content p { margin: 0.5em 0; }
+.preview-content ul, .preview-content ol { padding-left: 1.5em; margin: 0.5em 0; }
+.preview-content li { margin: 0.25em 0; }
+.preview-content blockquote {
+  border-left: 3px solid var(--accent-primary);
+  padding: 0.5em 1em;
+  margin: 0.75em 0;
+  background: var(--glass-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary);
+}
+.preview-content code {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--accent-secondary);
+}
+.preview-content pre {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1em;
+  margin: 0.75em 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.preview-content pre code { background: none; border: none; padding: 0; color: var(--text-primary); }
+.preview-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+.preview-content th, .preview-content td {
+  border: 1px solid var(--border-default);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.preview-content th { background: var(--bg-tertiary); font-weight: 600; }
+.preview-content img { max-width: 100%; border-radius: var(--radius-md); margin: 0.75em 0; }
+.preview-content hr { border: none; border-top: 1px solid var(--border-default); margin: 1.5em 0; }
+.preview-content a { color: var(--accent-secondary); text-decoration: underline; }
+.preview-content mark { background-color: rgba(251, 191, 36, 0.3); border-radius: 2px; padding: 0 2px; }
+
+/* PDF Target */
+.pdf-target {
+  background: white;
+  color: #1a1a2e;
+  padding: 40px;
+  font-family: var(--font-sans);
+}
+
+.pdf-target h1 { color: #1a1a2e; }
+.pdf-target h2 { color: #2d2d4e; }
+.pdf-target h3, .pdf-target h4 { color: #3d3d5e; }
+.pdf-target code { background: #f3f4f6; border-color: #e5e7eb; color: #6c63ff; }
+.pdf-target pre { background: #f8f9fa; border-color: #e5e7eb; }
+.pdf-target pre code { color: #1a1a2e; }
+.pdf-target blockquote { background: #f8f9fa; border-color: #6c63ff; color: #4a4a6a; }
+.pdf-target th { background: #f3f4f6; }
+.pdf-target th, .pdf-target td { border-color: #e5e7eb; }
+.pdf-target a { color: #6c63ff; }
+
+/* PDF Header */
+.pdf-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #6c63ff;
+}
+
+.pdf-header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.pdf-header .pdf-date {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.pdf-footer {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* Print Styles */
+@media print {
+  .preview-panel {
+    width: 100% !important;
+    border: none !important;
+  }
+  .preview-header {
+    display: none !important;
+  }
+  .preview-body {
+    padding: 0 !important;
+  }
+}

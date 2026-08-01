@@ -1,0 +1,298 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
+
+const NotesContext = createContext(null)
+
+export function NotesProvider({ children }) {
+  const { user } = useAuth()
+  const [folders, setFolders] = useState([])
+  const [notes, setNotes] = useState([])
+  const [trashedNotes, setTrashedNotes] = useState([])
+  const [trashedFolders, setTrashedFolders] = useState([])
+  const [activeNoteId, setActiveNoteId] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const activeNote = notes.find(n => n.id === activeNoteId) || null
+
+  const fetchData = useCallback(async () => {
+    if (!user) return
+    setLoading(true)
+
+    const [foldersRes, notesRes] = await Promise.all([
+      supabase.from('folders').select('*').eq('user_id', user.id).is('deleted_at', null).order('name'),
+      supabase.from('notes').select('*').eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }),
+    ])
+
+    if (foldersRes.data) setFolders(foldersRes.data)
+    if (notesRes.data) setNotes(notesRes.data)
+    setLoading(false)
+  }, [user])
+
+  const fetchTrash = useCallback(async () => {
+    if (!user) return
+
+    const [foldersRes, notesRes] = await Promise.all([
+      supabase.from('folders').select('*').eq('user_id', user.id).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+      supabase.from('notes').select('*').eq('user_id', user.id).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+    ])
+
+    if (foldersRes.data) setTrashedFolders(foldersRes.data)
+    if (notesRes.data) setTrashedNotes(notesRes.data)
+  }, [user])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // === FOLDER OPERATIONS ===
+
+  const createFolder = async (name, parentId = null) => {
+    if (!user) return null
+    const { data, error } = await supabase
+      .from('folders')
+      .insert({ user_id: user.id, name, parent_id: parentId })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Create folder error:', error.message)
+      throw error
+    }
+    setFolders(prev => [...prev, data])
+    return data
+  }
+
+  const updateFolder = async (id, updates) => {
+    const { data, error } = await supabase
+      .from('folders')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Update folder error:', error.message)
+      throw error
+    }
+    setFolders(prev => prev.map(f => f.id === id ? data : f))
+    return data
+  }
+
+  const deleteFolder = async (id) => {
+    // Soft delete: move to trash
+    const { error } = await supabase
+      .from('folders')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Delete folder error:', error.message)
+      throw error
+    }
+
+    // Also soft-delete notes in the folder
+    await supabase
+      .from('notes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('folder_id', id)
+      .eq('user_id', user.id)
+
+    setFolders(prev => prev.filter(f => f.id !== id))
+    setNotes(prev => prev.filter(n => n.folder_id !== id))
+  }
+
+  // === NOTE OPERATIONS ===
+
+  const createNote = async (folderId = null) => {
+    if (!user) return null
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        user_id: user.id,
+        folder_id: folderId,
+        title: 'Untitled Note',
+        content: null,
+        content_html: '',
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Create note error:', error.message)
+      throw error
+    }
+    setNotes(prev => [data, ...prev])
+    setActiveNoteId(data.id)
+    return data
+  }
+
+  const updateNote = async (id, updates) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Update note error:', error.message)
+      throw error
+    }
+    setNotes(prev => prev.map(n => n.id === id ? data : n))
+    return data
+  }
+
+  const deleteNote = async (id) => {
+    // Soft delete: move to trash
+    const { error } = await supabase
+      .from('notes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Delete note error:', error.message)
+      throw error
+    }
+
+    setNotes(prev => prev.filter(n => n.id !== id))
+    if (activeNoteId === id) setActiveNoteId(null)
+  }
+
+  const moveNote = async (noteId, folderId) => {
+    return updateNote(noteId, { folder_id: folderId })
+  }
+
+  // === TRASH OPERATIONS ===
+
+  const restoreNote = async (id) => {
+    const { error } = await supabase
+      .from('notes')
+      .update({ deleted_at: null })
+      .eq('id', id)
+
+    if (error) throw error
+    await fetchData()
+    await fetchTrash()
+  }
+
+  const restoreFolder = async (id) => {
+    const { error } = await supabase
+      .from('folders')
+      .update({ deleted_at: null })
+      .eq('id', id)
+
+    if (error) throw error
+
+    // Also restore notes that were in this folder
+    await supabase
+      .from('notes')
+      .update({ deleted_at: null })
+      .eq('folder_id', id)
+      .eq('user_id', user.id)
+
+    await fetchData()
+    await fetchTrash()
+  }
+
+  const permanentDeleteNote = async (id) => {
+    const { error } = await supabase.from('notes').delete().eq('id', id)
+    if (error) throw error
+    setTrashedNotes(prev => prev.filter(n => n.id !== id))
+  }
+
+  const permanentDeleteFolder = async (id) => {
+    // Permanently delete notes in folder first
+    await supabase.from('notes').delete().eq('folder_id', id)
+    const { error } = await supabase.from('folders').delete().eq('id', id)
+    if (error) throw error
+    setTrashedFolders(prev => prev.filter(f => f.id !== id))
+    setTrashedNotes(prev => prev.filter(n => n.folder_id !== id))
+  }
+
+  const emptyTrash = async () => {
+    await supabase.from('notes').delete().eq('user_id', user.id).not('deleted_at', 'is', null)
+    await supabase.from('folders').delete().eq('user_id', user.id).not('deleted_at', 'is', null)
+    setTrashedNotes([])
+    setTrashedFolders([])
+  }
+
+  // === SHARE OPERATIONS ===
+
+  const shareNote = async (noteId, mode = 'public', shareKey = null, shareKeyHint = null) => {
+    const { hashPassword } = await import('../lib/encryption')
+
+    const updates = {
+      is_shared: true,
+      share_id: crypto.randomUUID(),
+      share_mode: mode,
+      share_key_hash: shareKey ? await hashPassword(shareKey) : null,
+      share_key_hint: shareKeyHint || null,
+    }
+
+    return updateNote(noteId, updates)
+  }
+
+  const unshareNote = async (noteId) => {
+    return updateNote(noteId, {
+      is_shared: false,
+      share_id: null,
+      share_mode: 'public',
+      share_key_hash: null,
+      share_key_hint: null,
+    })
+  }
+
+  const updateShareKey = async (noteId, newKey, hint = null) => {
+    const { hashPassword } = await import('../lib/encryption')
+    return updateNote(noteId, {
+      share_key_hash: newKey ? await hashPassword(newKey) : null,
+      share_key_hint: hint,
+    })
+  }
+
+  // === LOCK OPERATIONS ===
+
+  const lockNote = async (noteId, password) => {
+    const { hashPassword } = await import('../lib/encryption')
+    const hash = await hashPassword(password)
+    return updateNote(noteId, { is_locked: true, password_hash: hash })
+  }
+
+  const unlockNote = async (noteId) => {
+    return updateNote(noteId, { is_locked: false, password_hash: null })
+  }
+
+  const lockFolder = async (folderId, password) => {
+    const { hashPassword } = await import('../lib/encryption')
+    const hash = await hashPassword(password)
+    return updateFolder(folderId, { is_locked: true, password_hash: hash })
+  }
+
+  const unlockFolder = async (folderId) => {
+    return updateFolder(folderId, { is_locked: false, password_hash: null })
+  }
+
+  return (
+    <NotesContext.Provider value={{
+      folders, notes, activeNote, activeNoteId, loading,
+      trashedNotes, trashedFolders,
+      setActiveNoteId,
+      createFolder, updateFolder, deleteFolder,
+      createNote, updateNote, deleteNote, moveNote,
+      shareNote, unshareNote, updateShareKey,
+      lockNote, unlockNote, lockFolder, unlockFolder,
+      restoreNote, restoreFolder,
+      permanentDeleteNote, permanentDeleteFolder, emptyTrash,
+      fetchData, fetchTrash,
+    }}>
+      {children}
+    </NotesContext.Provider>
+  )
+}
+
+export function useNotes() {
+  const context = useContext(NotesContext)
+  if (!context) throw new Error('useNotes must be used within NotesProvider')
+  return context
+}
