@@ -101,7 +101,7 @@ export default function Header({
             <button
               className="header-btn"
               onClick={() => setShowDeleteConfirm(true)}
-              title="Delete"
+              title="Move to Trash"
               style={{ color: 'var(--danger)' }}
             >
               <Trash2 size={16} />
@@ -128,13 +128,13 @@ export default function Header({
       {showDeleteConfirm && (
         <div className="dialog-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="dialog" onClick={e => e.stopPropagation()}>
-            <h3>Delete Note</h3>
+            <h3>Move to Trash?</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)' }}>
-              "<strong>{activeNote?.title}</strong>" will be permanently deleted. This action cannot be undone.
+              "<strong>{activeNote?.title}</strong>" will be moved to Trash. You can restore it later.
             </p>
             <div className="dialog-actions">
               <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
+              <button className="btn btn-danger" onClick={handleDelete}>Move to Trash</button>
             </div>
           </div>
         </div>
