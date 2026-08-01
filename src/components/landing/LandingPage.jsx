@@ -95,6 +95,11 @@ const testimonials = [
 export default function LandingPage() {
   const { openDonation } = useDonation()
 
+  const scrollTo = (id) => (e) => {
+    e.preventDefault()
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="landing">
       {/* Navbar */}
@@ -106,8 +111,8 @@ export default function LandingPage() {
           <span>PadSync</span>
         </div>
         <div className="landing-nav-links">
-          <a href="#features" className="landing-nav-link">Features</a>
-          <a href="#how-it-works" className="landing-nav-link">How It Works</a>
+          <a href="#features" onClick={scrollTo('features')} className="landing-nav-link">Features</a>
+          <a href="#how-it-works" onClick={scrollTo('how-it-works')} className="landing-nav-link">How It Works</a>
           <button onClick={openDonation} className="landing-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             <Heart size={14} style={{ color: '#ff6b6b', marginRight: '4px' }} /> Support
           </button>
@@ -138,7 +143,7 @@ export default function LandingPage() {
             <Link to="/login" className="landing-btn-primary">
               <Zap size={18} /> Start Taking Notes
             </Link>
-            <a href="#features" className="landing-btn-secondary">
+            <a href="#features" onClick={scrollTo('features')} className="landing-btn-secondary">
               Explore Features <ChevronRight size={16} />
             </a>
           </div>
