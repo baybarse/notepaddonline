@@ -93,7 +93,7 @@ export default function TipTapEditor({ note, onContentChange }) {
   if (!editor) return null
 
   return (
-    <>
+    <div className="tiptap-editor-root">
       <EditorToolbar
         editor={editor}
         onImageUpload={() => setShowImageUpload(true)}
@@ -109,6 +109,6 @@ export default function TipTapEditor({ note, onContentChange }) {
           onClose={() => setShowImageUpload(false)}
         />
       )}
-    </>
+    </div>
   )
 }

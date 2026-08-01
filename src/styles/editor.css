@@ -81,6 +81,14 @@
 }
 
 /* TipTap Editor */
+.tiptap-editor-root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .tiptap-wrapper {
   flex: 1;
   min-height: 0;
@@ -539,24 +547,42 @@
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
+    min-height: var(--toolbar-height);
+    flex-shrink: 0;
   }
 
   .toolbar-group {
     flex-shrink: 0;
   }
 
+  .toolbar-divider {
+    margin: 0 2px;
+  }
+
   .tiptap-wrapper {
-    padding: var(--space-3);
-    min-height: 0;
     flex: 1;
+    min-height: 0;
+    padding: var(--space-3);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .tiptap {
-    min-height: 200px;
+    min-height: 300px;
+    padding-bottom: 100px;
+  }
+
+  .markdown-editor-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .markdown-textarea {
+    flex: 1;
+    min-height: 0;
     padding: var(--space-3);
-    min-height: 200px;
+    -webkit-overflow-scrolling: touch;
   }
 }
