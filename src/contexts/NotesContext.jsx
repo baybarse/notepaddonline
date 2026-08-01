@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
@@ -13,7 +13,83 @@ export function NotesProvider({ children }) {
   const [activeNoteId, setActiveNoteId] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Sync status
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [syncState, setSyncState] = useState('synced') // 'synced' | 'syncing' | 'pending' | 'error'
+  const [pendingCount, setPendingCount] = useState(0)
+  const offlineQueueRef = useRef([])
+  const QUEUE_KEY = 'padsync_offline_queue'
+
   const activeNote = notes.find(n => n.id === activeNoteId) || null
+
+  // Load offline queue
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]')
+      offlineQueueRef.current = saved
+      setPendingCount(saved.length)
+      if (saved.length > 0) setSyncState('pending')
+    } catch { /* ignore */ }
+  }, [])
+
+  // Online/Offline detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      // Process queue when back online
+      processOfflineQueue()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  const saveQueue = useCallback(() => {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(offlineQueueRef.current))
+    setPendingCount(offlineQueueRef.current.length)
+  }, [])
+
+  const processOfflineQueue = useCallback(async () => {
+    if (offlineQueueRef.current.length === 0) return
+    setSyncState('syncing')
+
+    const failedOps = []
+    for (const op of offlineQueueRef.current) {
+      try {
+        if (op.type === 'update_note') {
+          await supabase.from('notes')
+            .update({ ...op.data, updated_at: new Date().toISOString() })
+            .eq('id', op.noteId)
+        } else if (op.type === 'delete_note') {
+          await supabase.from('notes')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', op.noteId)
+        } else if (op.type === 'update_folder') {
+          await supabase.from('folders')
+            .update({ ...op.data, updated_at: new Date().toISOString() })
+            .eq('id', op.folderId)
+        }
+      } catch {
+        failedOps.push(op)
+      }
+    }
+
+    offlineQueueRef.current = failedOps
+    saveQueue()
+    setSyncState(failedOps.length > 0 ? 'error' : 'synced')
+
+    // Refresh data after processing queue
+    if (failedOps.length === 0) {
+      fetchData()
+    }
+  }, [saveQueue])
 
   const fetchData = useCallback(async () => {
     if (!user) return
@@ -64,6 +140,16 @@ export function NotesProvider({ children }) {
   }
 
   const updateFolder = async (id, updates) => {
+    if (!navigator.onLine) {
+      // Queue for offline
+      offlineQueueRef.current.push({ type: 'update_folder', folderId: id, data: updates, timestamp: Date.now() })
+      saveQueue()
+      setSyncState('pending')
+      setFolders(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f))
+      return { id, ...updates }
+    }
+
+    setSyncState('syncing')
     const { data, error } = await supabase
       .from('folders')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -73,14 +159,15 @@ export function NotesProvider({ children }) {
 
     if (error) {
       console.error('Update folder error:', error.message)
+      setSyncState('error')
       throw error
     }
     setFolders(prev => prev.map(f => f.id === id ? data : f))
+    setSyncState('synced')
     return data
   }
 
   const deleteFolder = async (id) => {
-    // Soft delete: move to trash
     const { error } = await supabase
       .from('folders')
       .update({ deleted_at: new Date().toISOString() })
@@ -91,7 +178,6 @@ export function NotesProvider({ children }) {
       throw error
     }
 
-    // Also soft-delete notes in the folder
     await supabase
       .from('notes')
       .update({ deleted_at: new Date().toISOString() })
@@ -128,6 +214,17 @@ export function NotesProvider({ children }) {
   }
 
   const updateNote = async (id, updates) => {
+    if (!navigator.onLine) {
+      // Queue for offline
+      offlineQueueRef.current.push({ type: 'update_note', noteId: id, data: updates, timestamp: Date.now() })
+      saveQueue()
+      setSyncState('pending')
+      // Optimistic update
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n))
+      return { id, ...updates }
+    }
+
+    setSyncState('syncing')
     const { data, error } = await supabase
       .from('notes')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -137,14 +234,25 @@ export function NotesProvider({ children }) {
 
     if (error) {
       console.error('Update note error:', error.message)
+      setSyncState('error')
       throw error
     }
     setNotes(prev => prev.map(n => n.id === id ? data : n))
+    setSyncState('synced')
     return data
   }
 
   const deleteNote = async (id) => {
-    // Soft delete: move to trash
+    if (!navigator.onLine) {
+      offlineQueueRef.current.push({ type: 'delete_note', noteId: id, timestamp: Date.now() })
+      saveQueue()
+      setSyncState('pending')
+      setNotes(prev => prev.filter(n => n.id !== id))
+      if (activeNoteId === id) setActiveNoteId(null)
+      return
+    }
+
+    setSyncState('syncing')
     const { error } = await supabase
       .from('notes')
       .update({ deleted_at: new Date().toISOString() })
@@ -152,11 +260,13 @@ export function NotesProvider({ children }) {
 
     if (error) {
       console.error('Delete note error:', error.message)
+      setSyncState('error')
       throw error
     }
 
     setNotes(prev => prev.filter(n => n.id !== id))
     if (activeNoteId === id) setActiveNoteId(null)
+    setSyncState('synced')
   }
 
   const moveNote = async (noteId, folderId) => {
@@ -184,7 +294,6 @@ export function NotesProvider({ children }) {
 
     if (error) throw error
 
-    // Also restore notes that were in this folder
     await supabase
       .from('notes')
       .update({ deleted_at: null })
@@ -202,7 +311,6 @@ export function NotesProvider({ children }) {
   }
 
   const permanentDeleteFolder = async (id) => {
-    // Permanently delete notes in folder first
     await supabase.from('notes').delete().eq('folder_id', id)
     const { error } = await supabase.from('folders').delete().eq('id', id)
     if (error) throw error
@@ -277,6 +385,7 @@ export function NotesProvider({ children }) {
     <NotesContext.Provider value={{
       folders, notes, activeNote, activeNoteId, loading,
       trashedNotes, trashedFolders,
+      isOnline, syncState, pendingCount,
       setActiveNoteId,
       createFolder, updateFolder, deleteFolder,
       createNote, updateNote, deleteNote, moveNote,

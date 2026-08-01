@@ -4,14 +4,17 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 import PreviewPanel from './PreviewPanel'
 import NoteEditor from '../editor/NoteEditor'
-import { FileText, PenLine, Eye, FolderOpen } from 'lucide-react'
+import SyncIndicator from '../ui/SyncIndicator'
+import { FileText, PenLine, Eye, FolderOpen, Share2 } from 'lucide-react'
+import ShareDialog from '../sidebar/ShareDialog'
 import '../../styles/layout.css'
 
 export default function AppLayout() {
-  const { activeNote } = useNotes()
+  const { activeNote, isOnline, syncState, pendingCount } = useNotes()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [previewMode, setPreviewMode] = useState('off') // 'off' | 'split' | 'fullscreen'
   const [editorMode, setEditorMode] = useState('wysiwyg')
+  const [showMobileShare, setShowMobileShare] = useState(false)
 
   const toggleSidebar = useCallback(() => setSidebarOpen(p => !p), [])
 
@@ -73,6 +76,9 @@ export default function AppLayout() {
             </div>
           )}
         </div>
+
+        {/* Sync Indicator */}
+        <SyncIndicator isOnline={isOnline} syncState={syncState} pendingCount={pendingCount} />
       </div>
 
       {isPreviewOpen && activeNote && (
@@ -92,11 +98,19 @@ export default function AppLayout() {
           <span>Notes</span>
         </button>
         <button
-          className={`mobile-nav-btn ${!sidebarOpen && !isPreviewOpen ? 'active' : ''}`}
-          onClick={() => { setSidebarOpen(false); setPreviewMode('off') }}
+          className={`mobile-nav-btn ${!sidebarOpen && !isPreviewOpen && !showMobileShare ? 'active' : ''}`}
+          onClick={() => { setSidebarOpen(false); setPreviewMode('off'); setShowMobileShare(false) }}
         >
           <PenLine />
           <span>Editor</span>
+        </button>
+        <button
+          className={`mobile-nav-btn ${showMobileShare ? 'active' : ''}`}
+          onClick={() => { if (activeNote) setShowMobileShare(true); setSidebarOpen(false) }}
+          disabled={!activeNote}
+        >
+          <Share2 />
+          <span>Share</span>
         </button>
         <button
           className={`mobile-nav-btn ${isPreviewOpen ? 'active' : ''}`}
@@ -107,6 +121,11 @@ export default function AppLayout() {
           <span>Preview</span>
         </button>
       </nav>
+
+      {/* Mobile Share Dialog */}
+      {showMobileShare && activeNote && (
+        <ShareDialog note={activeNote} onClose={() => setShowMobileShare(false)} />
+      )}
     </div>
   )
 }

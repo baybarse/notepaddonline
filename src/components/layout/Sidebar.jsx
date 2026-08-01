@@ -5,7 +5,8 @@ import { useDonation } from '../../contexts/DonationContext'
 import FolderTree from '../sidebar/FolderTree'
 import TrashPanel from '../sidebar/TrashPanel'
 import MoveToFolderDialog from '../sidebar/MoveToFolderDialog'
-import { Plus, Search, LogOut, FileText, Image, Heart, Trash2, MoreHorizontal, ArrowRight, Trash, AlertTriangle, GripVertical } from 'lucide-react'
+import ShareDialog from '../sidebar/ShareDialog'
+import { Plus, Search, LogOut, FileText, Image, Heart, Trash2, MoreHorizontal, ArrowRight, Trash, AlertTriangle, GripVertical, Share2 } from 'lucide-react'
 import '../../styles/sidebar.css'
 
 export default function Sidebar({ onCloseMobile }) {
@@ -17,6 +18,7 @@ export default function Sidebar({ onCloseMobile }) {
   const [noteMenu, setNoteMenu] = useState(null)
   const [moveNoteId, setMoveNoteId] = useState(null)
   const [deleteNoteConfirm, setDeleteNoteConfirm] = useState(null)
+  const [shareNoteId, setShareNoteId] = useState(null)
   const [dragOverTarget, setDragOverTarget] = useState(null) // 'uncategorized' | folder_id
 
   const uncategorizedNotes = useMemo(
@@ -199,6 +201,9 @@ export default function Sidebar({ onCloseMobile }) {
                 <>
                   <div style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-overlay)' }} onClick={() => setNoteMenu(null)} />
                   <div className="create-menu" style={{ zIndex: 'calc(var(--z-overlay) + 1)' }}>
+                    <button className="create-menu-item" onClick={() => { setActiveNoteId(note.id); setShareNoteId(note.id); setNoteMenu(null) }}>
+                      <Share2 size={16} /> Share
+                    </button>
                     <button className="create-menu-item" onClick={() => { setMoveNoteId(note.id); setNoteMenu(null) }}>
                       <ArrowRight size={16} /> Move to Folder
                     </button>
@@ -238,6 +243,10 @@ export default function Sidebar({ onCloseMobile }) {
 
       {showTrash && <TrashPanel onClose={() => setShowTrash(false)} />}
       {moveNoteId && <MoveToFolderDialog noteId={moveNoteId} onClose={() => setMoveNoteId(null)} />}
+      {shareNoteId && (() => {
+        const shareNote = notes.find(n => n.id === shareNoteId)
+        return shareNote ? <ShareDialog note={shareNote} onClose={() => setShareNoteId(null)} /> : null
+      })()}
 
       {deleteNoteConfirm && (
         <div className="dialog-overlay" onClick={() => setDeleteNoteConfirm(null)}>
