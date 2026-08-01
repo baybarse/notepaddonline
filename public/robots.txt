@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /login
+
+Sitemap: https://padsync.easywaytools.online/sitemap.xml
+
+# PadSync — Free Online Notepad & Note-Taking App
+# https://padsync.easywaytools.online
